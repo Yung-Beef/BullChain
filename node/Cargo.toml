@@ -1,6 +1,6 @@
 [package]
-name = "parachain-template-node"
-description = "A parachain node template built with Substrate and Cumulus, part of Polkadot Sdk."
+name = "parachain-bullposting-node"
+description = "A bullposting parachain node built with Substrate and Cumulus, part of Polkadot Sdk."
 version = "0.1.0"
 license = "Unlicense"
 authors.workspace = true
@@ -11,7 +11,7 @@ publish = false
 build = "build.rs"
 
 # [[bin]]
-# name = "parachain-template-node"
+# name = "parachain-bullposting-node"
 
 [dependencies]
 clap = { features = ["derive"], workspace = true }
@@ -22,7 +22,7 @@ jsonrpsee = { features = ["server"], workspace = true }
 futures = { workspace = true }
 serde_json = { workspace = true, default-features = true }
 docify = { workspace = true }
-parachain-template-runtime.workspace = true
+parachain-bullposting-runtime.workspace = true
 frame-benchmarking.workspace = true
 frame-benchmarking.default-features = true
 frame-benchmarking-cli.workspace = true
@@ -117,21 +117,21 @@ substrate-build-script-utils.default-features = true
 default = ["std"]
 std = [
 	"log/std",
-	"parachain-template-runtime/std",
+	"parachain-bullposting-runtime/std",
 	"xcm/std",
 ]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-benchmarking-cli/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
-	"parachain-template-runtime/runtime-benchmarks",
+	"parachain-bullposting-runtime/runtime-benchmarks",
 	"polkadot-cli/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"sc-service/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 ]
 try-runtime = [
-	"parachain-template-runtime/try-runtime",
+	"parachain-bullposting-runtime/try-runtime",
 	"polkadot-cli/try-runtime",
 	"sp-runtime/try-runtime",
 ]

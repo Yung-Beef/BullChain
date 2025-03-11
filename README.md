@@ -50,7 +50,7 @@ cargo build --release
 🐳 Alternatively, build the docker image:
 
 ```sh
-docker build . -t polkadot-sdk-parachain-template
+docker build . -t polkadot-sdk-parachain-bullposting
 ```
 
 ### Local Development Chain

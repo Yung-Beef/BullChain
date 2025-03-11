@@ -1,4 +1,4 @@
-use parachain_template_runtime as runtime;
+use parachain_bullposting_runtime as runtime;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
@@ -66,7 +66,7 @@ pub fn local_testnet_config() -> ChainSpec {
 	.with_id("local_testnet")
 	.with_chain_type(ChainType::Local)
 	.with_genesis_config_preset_name(sc_chain_spec::LOCAL_TESTNET_RUNTIME_PRESET)
-	.with_protocol_id("template-local")
+	.with_protocol_id("bullposting-local")
 	.with_properties(properties)
 	.build()
 }

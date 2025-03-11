@@ -303,8 +303,41 @@ impl pallet_collator_selection::Config for Runtime {
 	type WeightInfo = ();
 }
 
-/// Configure the pallet template in pallets/template.
-impl pallet_parachain_template::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = pallet_parachain_template::weights::SubstrateWeight<Runtime>;
+parameter_types! {
+	pub const RewardStyle: bool = true; // false = FlatReward, true = RewardCoefficient
+    pub const FlatReward: u32 = 500; // if Alice bonds any amount of tokens she will be rewarded with 500 more
+    pub const RewardCoefficient: u32 = 100; // if Alice bonds 400 tokens she will be rewarded with 400 more
+    pub const SlashStyle: bool = true; // false = FlatSlash, true = SlashCoefficient
+    pub const FlatSlash: u32 = 500; // if Alice bonds any amount of tokens (at least `BondMinimum`) she will be slashed 500
+    pub const SlashCoefficient: u8 = 100; // if Alice bonds 500 tokens she will lose 100% of them
+	pub const VotingPeriod: BlockNumber = 20;
+    pub const BondMinimum: u32 = 500;
+	pub const VoteMinimum: u32 = 500;
+    pub const MaxVoters: u32 = 10000;
+    pub const StorageRent: u32 = 1000;
+    pub const MaxUrlLength: u32 = 2000;
+	pub const UnfreezeLimit: u32 = 1000;
+}
+
+/// Configure the pallet bullposting in pallets/bullposting.
+impl pallet_parachain_bullposting::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = pallet_parachain_bullposting::weights::SubstrateWeight<Runtime>;
+	type NativeBalance = Balances;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
+    type FreezeIdentifier = RuntimeFreezeReason;
+    type RewardStyle = RewardStyle;
+    type FlatReward = FlatReward;
+    type RewardCoefficient = RewardCoefficient;
+    type SlashStyle = SlashStyle;
+    type FlatSlash = FlatSlash;
+    type SlashCoefficient = SlashCoefficient;
+    type VotingPeriod = VotingPeriod;
+    type MaxUrlLength = MaxUrlLength;
+    type BondMinimum = BondMinimum;
+	type VoteMinimum = VoteMinimum;
+	type MaxVoters = MaxVoters;
+	type StorageRent = StorageRent;
+	type UnfreezeLimit = UnfreezeLimit;
 }
