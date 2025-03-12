@@ -13,55 +13,7 @@
         "balances": {
           "balances": [
             [
-              "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-              1152921504606846976
-            ],
-            [
-              "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-              1152921504606846976
-            ],
-            [
-              "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
-              1152921504606846976
-            ],
-            [
-              "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
-              1152921504606846976
-            ],
-            [
-              "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw",
-              1152921504606846976
-            ],
-            [
-              "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL",
-              1152921504606846976
-            ],
-            [
-              "5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
-              1152921504606846976
-            ],
-            [
-              "5HpG9w8EBLe5XCrbczpwq5TSXvedjrBGCwqxK1iQ7qUsSWFc",
-              1152921504606846976
-            ],
-            [
-              "5Ck5SLSHYac6WFt5UZRSsdJjwmpSZq85fd5TRNAdZQVzEAPT",
-              1152921504606846976
-            ],
-            [
-              "5HKPmK9GYtE1PSLsS1qiYU9xQ9Si1NcEhdeCq9sw5bqu4ns8",
-              1152921504606846976
-            ],
-            [
-              "5FCfAonRZgTFrTd9HREEyeJjDpT397KMzizE6T3DvebLFE7n",
-              1152921504606846976
-            ],
-            [
-              "5CRmqmsiNFExV6VbdmPJViVxrWmkaXXvBrSX8oqBT8R9vmWk",
-              1152921504606846976
-            ],
-            [
-              "5FpsWz7fh9Qs6dKNPaqwjby4FPUKu827X25M3XVJ38PhAiWR",
+              "5G1oSMnEAE9LLy9vxTMKognyatrnRL5hgsGVFumurRL4DXWV",
               1152921504606846976
             ]
           ]
@@ -70,13 +22,11 @@
           "candidacyBond": 16000000000,
           "desiredCandidates": 0,
           "invulnerables": [
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
             "5FpsWz7fh9Qs6dKNPaqwjby4FPUKu827X25M3XVJ38PhAiWR"
           ]
         },
         "parachainInfo": {
-          "parachainId": 4716
+          "parachainId": 4718
         },
         "parachainSystem": {},
         "polkadotXcm": {
@@ -84,20 +34,6 @@
         },
         "session": {
           "keys": [
-            [
-              "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-              "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-              {
-                "aura": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-              }
-            ],
-            [
-              "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-              "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-              {
-                "aura": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
-              }
-            ],
             [
               "5FpsWz7fh9Qs6dKNPaqwjby4FPUKu827X25M3XVJ38PhAiWR",
               "5FpsWz7fh9Qs6dKNPaqwjby4FPUKu827X25M3XVJ38PhAiWR",
@@ -120,7 +56,7 @@
   },
   "id": "BULL",
   "name": "Bullchain",
-  "para_id": 4716,
+  "para_id": 4718,
   "properties": {
     "tokenDecimals": 12,
     "tokenSymbol": "UNIT"
