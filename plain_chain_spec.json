@@ -22,11 +22,11 @@
           "candidacyBond": 16000000000,
           "desiredCandidates": 0,
           "invulnerables": [
-            "5FpsWz7fh9Qs6dKNPaqwjby4FPUKu827X25M3XVJ38PhAiWR"
+            "5G1oSMnEAE9LLy9vxTMKognyatrnRL5hgsGVFumurRL4DXWV"
           ]
         },
         "parachainInfo": {
-          "parachainId": 4718
+          "parachainId": 4720
         },
         "parachainSystem": {},
         "polkadotXcm": {
@@ -35,8 +35,8 @@
         "session": {
           "keys": [
             [
-              "5FpsWz7fh9Qs6dKNPaqwjby4FPUKu827X25M3XVJ38PhAiWR",
-              "5FpsWz7fh9Qs6dKNPaqwjby4FPUKu827X25M3XVJ38PhAiWR",
+              "5G1oSMnEAE9LLy9vxTMKognyatrnRL5hgsGVFumurRL4DXWV",
+              "5G1oSMnEAE9LLy9vxTMKognyatrnRL5hgsGVFumurRL4DXWV",
               {
                 "aura": "5FpsWz7fh9Qs6dKNPaqwjby4FPUKu827X25M3XVJ38PhAiWR"
               }
@@ -54,14 +54,14 @@
       }
     }
   },
-  "id": "BULL",
-  "name": "Bullchain",
-  "para_id": 4718,
+  "id": "Bull",
+  "name": "BullChain",
+  "para_id": 4720,
   "properties": {
     "tokenDecimals": 12,
-    "tokenSymbol": "UNIT"
+    "tokenSymbol": "BULL"
   },
-  "protocolId": null,
+  "protocolId": "Bull",
   "relay_chain": "paseo",
   "telemetryEndpoints": null
 }
