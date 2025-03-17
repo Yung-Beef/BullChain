@@ -69,7 +69,7 @@ parameter_types! {
     pub const VoteMinimum: u32 = 50;
     pub const MaxVoters: u32 = 2000;
     pub const StorageRent: u32 = 100;
-    pub const MaxUrlLength: u32 = 2000;
+    pub const MaxInputLength: u32 = 2000;
     pub const UnfreezeLimit: u32 = 1000;
 }
 
@@ -91,7 +91,7 @@ impl pallet_parachain_bullposting::Config for Test {
     type VoteMinimum = VoteMinimum;
     type MaxVoters = MaxVoters;
     type StorageRent = StorageRent;
-    type MaxUrlLength = MaxUrlLength;
+    type MaxInputLength = MaxInputLength;
     type UnfreezeLimit = UnfreezeLimit;
 }
 

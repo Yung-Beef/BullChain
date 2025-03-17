@@ -78,65 +78,84 @@ pub mod pallet {
         /// The ID type for freezes.
 		type FreezeIdentifier: Parameter + Member + MaxEncodedLen + Copy;
 
-        /// Determines whether Bullish post rewards are a flat number or coefficient.
-        /// A value of false equals a flat number.
-        /// A value of true equals a coefficient.
+        /// Determines which reward mechanism is used if a post is determined to be Bullish.
+        /// False == FlatReward
+        /// True == RewardCoefficient
         #[pallet::constant]
         type RewardStyle: Get<bool>;
 
-        /// The reward given to submitters of Bullish posts, only used if RewardStyle is set to false.
+        /// Determines the submitter's token reward if their post is determined to be Bullish, independent of their bond.
+        /// Due to this, submitters will likely only bond the BondMinimum, as they will earn the same reward regardless,
+        /// with a lower slash risk.
+        /// NOTE: This will only happen if `RewardStyle == false`
         #[pallet::constant]
         type FlatReward: Get<u32>;
 
-        /// The coefficient used to determine a submitter's reward if their post is voted Bullish.
-        /// Only used if RewardStyle is set to true.
-        /// A value of 1 (bond 10 tokens, end up with 20 total)
-        /// A value of 2 will reward them with 2x their bond (bond 10 tokens, end up with 30 total)
+        /// Determines the submitter's reward if their post is determined to be Bullish, based on the size of their bond.
+        /// A value of 100 is a 1x reward. 200 will give a 2x reward
+        /// (eg. you bond 500 tokens, you will receive a 1000 token reward and end with 1500 tokens).
+        /// Values between 0 and 100 can be used as well.
+        /// NOTE: This will only happen if `RewardStyle == true`
         #[pallet::constant]
         type RewardCoefficient: Get<u32>;
 
-        /// Determines whether the bond for Bearish posts are slashed by a flat number or a coefficient.
-        /// A value of false equals a flat number.
-        /// A value of true equals a coefficient.
+        /// Determines which slashing mechanism is used if a post is determined to be Bearish.
+        /// False == FlatSlash
+        /// True == SlashCoefficient
         #[pallet::constant]
         type SlashStyle: Get<bool>;
 
-        /// The amount of tokens slashed from the submitter of a Bearish post, only used if SlashStyle is set to false.
+        /// Determines how many of the submitter's bonded tokens are slashed if their post is determined to be Bearish.
+        /// If this is set higher than the bond of a post, only the submitter's full bond will be slashed
+        /// (eg. if you bond 50 tokens and FlatSlash == 100, you will only be slashed 50).
+        /// NOTE: This will only happen if `SlashStyle == false`.
         #[pallet::constant]
         type FlatSlash: Get<u32>;
 
-        /// The coefficient used to determine how much of a a submitter's bond is slashed if their post is voted Bearish.
-        /// Only used if SlashStyle is set to true.
+        /// Determines how much of the submitter's bond is slashed if their post is determined to be Bearish.
         /// A value of 100 will slash 100% of their bond, a value of 50 will slash a 50% of their bond.
         /// If set to a value higher than 100, 100 will be used.
+        /// NOTE: This will only happen if `SlashStyle == true`.
         #[pallet::constant]
         type SlashCoefficient: Get<u8>;
 
-        /// The number of blocks that votes will last.
+        /// Determines for how many blocks the voting period of a post will run based on the block number the post was submitted at.
+        /// Votes submitted after the period ends will fail. Once the period ends, the post can be resolved with `try_resolve_voting`.
         #[pallet::constant]
         type VotingPeriod: Get<BlockNumberFor<Self>>;
 
-        /// The minimum bond size accepted, bonds BELOW this number will be rejected.
+        /// Determines the minimum amount of tokens that are acceptable to bond when submitting a post.
+        /// Calling `try_submit_post` with a bond value lower than this amount will fail.
         #[pallet::constant]
         type BondMinimum: Get<u32>;
 
-        /// The minimum vote size accepted, votes BELOW this number will be rejected.
+        /// Determines the minimum amount of tokens that are acceptable to vote with.
+        /// Calling `try_submit_vote` or `try_update_vote` with votes smaller than this value will fail.
         #[pallet::constant]
         type VoteMinimum: Get<u32>;
 
-        /// The maximum number of accounts that can vote on a particular post.
+        /// Determines the maximum amount of accounts that can vote on a post.
+        /// This is used to bound a vector storing all of the accounts that have voted on a particular post,
+        /// so performance will slow as the value is increased (assuming the `MaxVoters` limit is actually reached on posts).
+        /// Calling `try_submit_vote` on a post that has reached the `MaxVoters` limit will fail.
         #[pallet::constant]
         type MaxVoters: Get<u32>;
 
-        /// The amount of tokens locked to store a post in storage.
+        /// Determines the amount of tokens that must be locked in order to submit a post.
+        /// This is separate from the post's bond and is not involved in the reward process.
+        /// This value should be sufficiently high to prevent storage bloat attacks.
+        /// The rent is unlocked once a post is ended and resolved (and thus removed from storage).
         #[pallet::constant]
         type StorageRent: Get<u32>;
 
-        /// The allowed length of the "URL" (or other) input into functions.
+        /// Determines the maximum acceptable length of submitted inputs.
+        /// The inputs are simply checked to ensure they are short enough, and then hashed, so this can be quite high in practice.
+        /// Calls with an input longer than this value will fail.
         #[pallet::constant]
-        type MaxUrlLength: Get<u32>;
+        type MaxInputLength: Get<u32>;
 
-        /// The maximum amount of unfreezes that can be done per `try_end_post`.
+        /// Determines the maximum number of accounts that can have their vote unfrozen when executing `try_end_post`.
+        /// If the number of votes on a post exceeds this value, `try_end_post` will need to be called again.
         #[pallet::constant]
         type UnfreezeLimit: Get<u32>;
 
@@ -292,10 +311,10 @@ pub mod pallet {
     /// information.
     #[pallet::error]
     pub enum Error<T> {
-        /// Submitted URL input was too long (acceptable length configured in runtime).
+        /// Submitted input was too long (acceptable length configured in runtime).
         InputTooLong,
-        /// Submitted URL was empty.
-        Empty,
+        /// Submitted input was empty.
+        EmptyInput,
         /// Attempted bond was below the BondMinimum configured in the runtime.
         BondTooLow,
         /// Attempted vote was below the VoteMinimum configured in the runtime.
@@ -322,6 +341,25 @@ pub mod pallet {
         VotingEnded,
     }
 
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        // Only runs during a runtime upgrade
+        #[cfg(feature = "try-runtime")]
+        fn try_state(_n: BlockNumber) -> Result<(), TryRuntimeError> {
+            // Ensure a storages were not wiped.
+            ensure!(!Posts::<T>::iter().count().is_zero(), "Posts storage is empty");
+
+            ensure!(!Votes::<T>::iter().count().is_zero(), "Votes storage is empty");
+
+            ensure!(!Voters::<T>::iter().count().is_zero(), "Voters storage is empty");
+
+            ensure!(!VoteCount::<T>::iter().count().is_zero(), "VoteCount storage is empty");
+
+            Ok(())
+        }
+}
+
+
     /// The pallet's dispatchable functions ([`Call`]s).
     ///
     /// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -342,30 +380,35 @@ pub mod pallet {
         /// If it is voted as bearish, they will be slashed.
         /// Rewards and slashes are configured in the runtime and can be based on the bond, which as a minimum.
         /// A storage rent fee is also held during the voting period, and once it it unlocked the post is cleared from storage.
+        /// 
+        /// ## Parameters
+        /// - `origin`: The origin calling the extrinsic
+        /// - `post_input`: The caller's input (essentially a string)
+        /// - `bond`: The amount of tokens being bonded by the caller
         ///
         /// ## Errors
-        ///
         /// The function will return an error under the following conditions:
         ///
-        /// - If they submit nothing for the post_url ([`Error::Empty`])
+        /// - If they submit nothing for the post_input ([`Error::EmptyInput`])
         /// - If the bondy is below the `BondMinimum` ([`Error::BondTooLow`])
-        /// - If post input is higher than the `MaxUrlLength` set in the runtime ([`Error::InputTooLong`])
+        /// - If post input is higher than the `MaxInputLength` set in the runtime ([`Error::InputTooLong`])
         /// - If the post has been submitted previously ([`Error::PostAlreadyExists`])
         /// - If the submitter does not have sufficient free tokens for their bond and the storage rent ([`Error::InsufficientFreeBalance`])
         #[pallet::call_index(0)]
         pub fn try_submit_post(
             origin: OriginFor<T>,
-            post_url: Vec<u8>,
+            post_input: Vec<u8>,
             bond: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             // Ensure the post input is not empty
-            ensure!(!post_url.is_empty(), Error::<T>::Empty);
-
-            ensure!(bond >= T::BondMinimum::get().into(), Error::<T>::BondTooLow);
+            ensure!(!post_input.is_empty(), Error::<T>::EmptyInput);
 
             // Convert the post input into a bounded vec to use in the actual logic, errors if too long
-            let bounded: BoundedVec<u8, T::MaxUrlLength> = BoundedVec::try_from(post_url).map_err(|_| Error::<T>::InputTooLong)?;
+            let bounded: BoundedVec<u8, T::MaxInputLength> = BoundedVec::try_from(post_input).map_err(|_| Error::<T>::InputTooLong)?;
+
+            // Ensure the bond is higher than `BondMinimum`
+            ensure!(bond >= T::BondMinimum::get().into(), Error::<T>::BondTooLow);
 
             Self::submit_post(who, bounded, bond)?;
 
@@ -373,14 +416,19 @@ pub mod pallet {
         }
 
         /// Submits a vote on whether a particular post is bullish or bearish.
-        ///
+        /// 
+        /// ## Parameters
+        /// - `origin`: The origin calling the extrinsic
+        /// - `post_input`: The caller's input (essentially a string)
+        /// - `vote_amount`: The amount of tokens being used to vote by the caller
+        /// - `direction`: Whether the caller things the post being voted upon is `Bullish` or `Bearish`
+        /// 
         /// ## Errors
-        ///
         /// The function will return an error under the following conditions:
         ///
-        /// - If they submit nothing for the post_url ([`Error::Empty`])
+        /// - If they submit nothing for the post_input ([`Error::EmptyInput`])
         /// - If the vote is below the VoteMinimum ([`Error::VoteTooLow`])
-        /// - If post input is higher than the `MaxUrlLength` set in the runtime ([`Error::InputTooLong`])
+        /// - If post input is higher than the `MaxInputLength` set in the runtime ([`Error::InputTooLong`])
         /// - If the post does not exist ([`Error::PostDoesNotExist`])
         /// - If the voting has already ended ([`Error::VotingEnded`])
         /// - If the post has already reached `MaxVoters` ([`Error::VotersMaxed`])
@@ -389,18 +437,19 @@ pub mod pallet {
         #[pallet::call_index(1)]
         pub fn try_submit_vote(
             origin: OriginFor<T>,
-            post_url: Vec<u8>,
+            post_input: Vec<u8>,
             vote_amount: BalanceOf<T>,
             direction: Direction,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             // Ensure the post input is not empty
-            ensure!(!post_url.is_empty(), Error::<T>::Empty);
-
-            ensure!(vote_amount >= T::VoteMinimum::get().into(), Error::<T>::VoteTooLow);
+            ensure!(!post_input.is_empty(), Error::<T>::EmptyInput);
 
             // Convert the post input into a bounded vec to use in the actual logic, errors if too long
-            let bounded: BoundedVec<u8, T::MaxUrlLength> = BoundedVec::try_from(post_url).map_err(|_| Error::<T>::InputTooLong)?;
+            let bounded: BoundedVec<u8, T::MaxInputLength> = BoundedVec::try_from(post_input).map_err(|_| Error::<T>::InputTooLong)?;
+
+            // Ensure the vote is higher than `VoteMinimum`
+            ensure!(vote_amount >= T::VoteMinimum::get().into(), Error::<T>::VoteTooLow);
 
             Self::submit_vote(who, bounded, vote_amount, direction)?;
 
@@ -410,13 +459,18 @@ pub mod pallet {
 
         /// Updates an account's vote and freeze accordingly. Only possible before a post is ended.
         ///
+        /// ## Parameters
+        /// - `origin`: The origin calling the extrinsic
+        /// - `post_input`: The caller's input (essentially a string)
+        /// - `new_vote`: The new amount of tokens being used by the caller to update their previous vote on a particular input
+        /// - `direction`: Whether the caller things the post being voted upon is `Bullish` or `Bearish`
+        /// 
         /// ## Errors
-        ///
         /// The function will return an error under the following conditions:
         ///
-        /// - If they submit nothing for the post_url ([`Error::Empty`])
+        /// - If they submit nothing for the post_input ([`Error::EmptyInput`])
         /// - If the vote is below the VoteMinimum ([`Error::VoteTooLow`])
-        /// - If post input is higher than the `MaxUrlLength` set in the runtime ([`Error::InputTooLong`])
+        /// - If post input is higher than the `MaxInputLength` set in the runtime ([`Error::InputTooLong`])
         /// - If the post does not exist ([`Error::PostDoesNotExist`])
         /// - If the voting has already ended ([`Error::VotingEnded`])
         /// - If this particular vote doesn't exist (['Error::VoteDoesNotExist'])
@@ -424,18 +478,19 @@ pub mod pallet {
         #[pallet::call_index(2)]
         pub fn try_update_vote(
             origin: OriginFor<T>,
-            post_url: Vec<u8>,
+            post_input: Vec<u8>,
             new_vote: BalanceOf<T>,
             direction: Direction
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             // Ensure the post input is not empty
-            ensure!(!post_url.is_empty(), Error::<T>::Empty);
-
-            ensure!(new_vote >= T::VoteMinimum::get().into(), Error::<T>::VoteTooLow);
+            ensure!(!post_input.is_empty(), Error::<T>::EmptyInput);
 
             // Convert the post input into a bounded vec to use in the actual logic, errors if too long
-            let bounded: BoundedVec<u8, T::MaxUrlLength> = BoundedVec::try_from(post_url).map_err(|_| Error::<T>::InputTooLong)?;
+            let bounded: BoundedVec<u8, T::MaxInputLength> = BoundedVec::try_from(post_input).map_err(|_| Error::<T>::InputTooLong)?;
+
+            // Ensure the vote is higher than `VoteMinimum`
+            ensure!(new_vote >= T::VoteMinimum::get().into(), Error::<T>::VoteTooLow);
 
             Self::update_vote(who, bounded, new_vote, direction)?;
             
@@ -445,27 +500,30 @@ pub mod pallet {
 
         /// Resolves a post's vote, rewarding or slashing the submitter and enabling try_end_post.
         /// Callable by anyone.
-        ///
+        /// 
+        /// ## Parameters
+        /// - `origin`: The origin calling the extrinsic
+        /// - `post_input`: The caller's input (essentially a string)
+        /// 
         /// ## Errors
-        ///
         /// The function will return an error under the following conditions:
         ///
-        /// - If they submit nothing for the post_url ([`Error::Empty`])
-        /// - If post input is higher than the `MaxUrlLength` set in the runtime ([`Error::InputTooLong`])
+        /// - If they submit nothing for the post_input ([`Error::EmptyInput`])
+        /// - If post input is higher than the `MaxInputLength` set in the runtime ([`Error::InputTooLong`])
         /// - If the post does not exist ([`Error::PostDoesNotExist`])
         /// - If the vote is still in progress ([`Error::VotingStillOngoing`])
         /// - If the post has already been ended ([`Error::PostAlreadyEnded`])
         #[pallet::call_index(3)]
         pub fn try_resolve_voting(
             origin: OriginFor<T>,
-            post_url: Vec<u8>,
+            post_input: Vec<u8>,
         ) -> DispatchResult {
             let _who = ensure_signed(origin)?;
             // Ensure the post input is not empty
-            ensure!(!post_url.is_empty(), Error::<T>::Empty);
+            ensure!(!post_input.is_empty(), Error::<T>::EmptyInput);
 
             // Convert the post input into a bounded vec to use in the actual logic, errors if too long
-            let bounded: BoundedVec<u8, T::MaxUrlLength> = BoundedVec::try_from(post_url).map_err(|_| Error::<T>::InputTooLong)?;
+            let bounded: BoundedVec<u8, T::MaxInputLength> = BoundedVec::try_from(post_input).map_err(|_| Error::<T>::InputTooLong)?;
 
             Self::resolve_voting(bounded)?;
 
@@ -474,27 +532,30 @@ pub mod pallet {
 
         /// Unlocks the submitter's storage rent and unfreezes all votes on that post.
         /// Callable by anyone.
+        /// 
+        /// ## Parameters
+        /// - `origin`: The origin calling the extrinsic
+        /// - `post_input`: The caller's input (essentially a string)
         ///
         /// ## Errors
-        ///
         /// The function will return an error under the following conditions:
         ///
-        /// - If they submit nothing for the post_url ([`Error::Empty`])
-        /// - If post input is higher than the `MaxUrlLength` set in the runtime ([`Error::InputTooLong`])
+        /// - If they submit nothing for the post_input ([`Error::EmptyInput`])
+        /// - If post input is higher than the `MaxInputLength` set in the runtime ([`Error::InputTooLong`])
         /// - If the post does not exist ([`Error::PostDoesNotExist`])
         /// - If the post is unended ([`Error::VotingUnresolved`])
         #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::try_end_post(T::UnfreezeLimit::get()))]
         pub fn try_end_post(
             origin: OriginFor<T>,
-            post_url: Vec<u8>,
+            post_input: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
             // Ensure the post input is not empty
-            ensure!(!post_url.is_empty(), Error::<T>::Empty);
+            ensure!(!post_input.is_empty(), Error::<T>::EmptyInput);
 
             // Convert the post input into a bounded vec to use in the actual logic, errors if too long
-            let bounded: BoundedVec<u8, T::MaxUrlLength> = BoundedVec::try_from(post_url).map_err(|_| Error::<T>::InputTooLong)?;
+            let bounded: BoundedVec<u8, T::MaxInputLength> = BoundedVec::try_from(post_input).map_err(|_| Error::<T>::InputTooLong)?;
 
             let weight_used = Self::end_post(bounded)?;
 
@@ -506,10 +567,10 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         pub(crate) fn submit_post(
             who: T::AccountId,
-            post_url: BoundedVec<u8, T::MaxUrlLength>,
+            post_input: BoundedVec<u8, T::MaxInputLength>,
             bond: BalanceOf<T>
         ) -> DispatchResult {
-            let id = sp_io::hashing::blake2_256(&post_url);
+            let id = sp_io::hashing::blake2_256(&post_input);
 
             // Checks if the post exists
             ensure!(!Posts::<T>::contains_key(&id), Error::<T>::PostAlreadyExists);
@@ -553,11 +614,11 @@ pub mod pallet {
 
         pub(crate) fn submit_vote(
             who: T::AccountId,
-            post_url: BoundedVec<u8, T::MaxUrlLength>,
+            post_input: BoundedVec<u8, T::MaxInputLength>,
             vote_amount: BalanceOf<T>,
             direction: Direction,
         ) -> DispatchResult {
-            let id = sp_io::hashing::blake2_256(&post_url);
+            let id = sp_io::hashing::blake2_256(&post_input);
 
             // Error if the post does not exist.
             ensure!(Posts::<T>::contains_key(&id), Error::<T>::PostDoesNotExist);
@@ -638,11 +699,11 @@ pub mod pallet {
 
         pub(crate) fn update_vote(
             who: T::AccountId,
-            post_url: BoundedVec<u8, T::MaxUrlLength>,
+            post_input: BoundedVec<u8, T::MaxInputLength>,
             new_vote: BalanceOf<T>,
             direction: Direction
         ) -> DispatchResult {
-            let id = sp_io::hashing::blake2_256(&post_url);
+            let id = sp_io::hashing::blake2_256(&post_input);
 
             // Error if the post does not exist.
             ensure!(Posts::<T>::contains_key(&id), Error::<T>::PostDoesNotExist);
@@ -726,9 +787,9 @@ pub mod pallet {
         }
 
         pub(crate) fn resolve_voting(
-            post_url: BoundedVec<u8, T::MaxUrlLength>
+            post_input: BoundedVec<u8, T::MaxInputLength>
         ) -> DispatchResult {
-            let id = sp_io::hashing::blake2_256(&post_url);
+            let id = sp_io::hashing::blake2_256(&post_input);
 
             // Error if the post does not exist.
             ensure!(Posts::<T>::contains_key(&id), Error::<T>::PostDoesNotExist);
@@ -857,9 +918,9 @@ pub mod pallet {
         }
 
         pub(crate) fn end_post(
-            post_url: BoundedVec<u8, T::MaxUrlLength>
+            post_input: BoundedVec<u8, T::MaxInputLength>
         ) -> DispatchResultWithPostInfo {
-            let id = sp_io::hashing::blake2_256(&post_url);
+            let id = sp_io::hashing::blake2_256(&post_input);
 
             // Error if the post does not exist.
             ensure!(Posts::<T>::contains_key(&id), Error::<T>::PostDoesNotExist);

@@ -315,7 +315,7 @@ parameter_types! {
 	pub const VoteMinimum: u32 = 500;
     pub const MaxVoters: u32 = 10000;
     pub const StorageRent: u32 = 1000;
-    pub const MaxUrlLength: u32 = 2000;
+    pub const MaxInputLength: u32 = 2000;
 	pub const UnfreezeLimit: u32 = 1000;
 }
 
@@ -334,7 +334,7 @@ impl pallet_parachain_bullposting::Config for Runtime {
     type FlatSlash = FlatSlash;
     type SlashCoefficient = SlashCoefficient;
     type VotingPeriod = VotingPeriod;
-    type MaxUrlLength = MaxUrlLength;
+    type MaxInputLength = MaxInputLength;
     type BondMinimum = BondMinimum;
 	type VoteMinimum = VoteMinimum;
 	type MaxVoters = MaxVoters;

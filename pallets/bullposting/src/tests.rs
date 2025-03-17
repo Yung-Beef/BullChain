@@ -26,7 +26,7 @@ fn test_try_submit_post() {
         assert_eq!(Balances::reducible_balance(&alice, Preservation::Preserve, Fortitude::Polite), balance - 1);
 
         // Cannot submit an empty post
-        assert_noop!(Bullposting::try_submit_post(RuntimeOrigin::signed(alice), empty_post, bond), Error::<Test>::Empty);
+        assert_noop!(Bullposting::try_submit_post(RuntimeOrigin::signed(alice), empty_post, bond), Error::<Test>::EmptyInput);
 
         // Cannot submit a post with a bond lower than `BondMinimum`
         assert_noop!(Bullposting::try_submit_post(RuntimeOrigin::signed(alice), post_url.clone(), 25), Error::<Test>::BondTooLow);
@@ -93,7 +93,7 @@ fn test_try_submit_vote() {
         assert_ok!(Bullposting::try_submit_post(RuntimeOrigin::signed(alice), post_url.clone(), bond));
 
         // Can't submit an empty post info with your vote
-        assert_noop!(Bullposting::try_submit_vote(RuntimeOrigin::signed(bob), empty_vote, vote_amount, crate::Direction::Bullish), Error::<Test>::Empty);
+        assert_noop!(Bullposting::try_submit_vote(RuntimeOrigin::signed(bob), empty_vote, vote_amount, crate::Direction::Bullish), Error::<Test>::EmptyInput);
 
         // Cannot submit a vote lower than `VoteMinimum`
         assert_noop!(Bullposting::try_submit_vote(RuntimeOrigin::signed(bob), post_url.clone(), 25, crate::Direction::Bullish), Error::<Test>::VoteTooLow);
@@ -201,7 +201,7 @@ fn test_try_update_vote() {
         let initial = crate::Votes::<Test>::get(bob, post_id);
 
         // Can't submit an empty post info with your vote
-        assert_noop!(Bullposting::try_update_vote(RuntimeOrigin::signed(bob), empty_vote, vote_amount, crate::Direction::Bullish), Error::<Test>::Empty);
+        assert_noop!(Bullposting::try_update_vote(RuntimeOrigin::signed(bob), empty_vote, vote_amount, crate::Direction::Bullish), Error::<Test>::EmptyInput);
 
         // Can't update vote to be below the vote minimum
         assert_noop!(Bullposting::try_update_vote(RuntimeOrigin::signed(bob), post_url.clone(), 25, crate::Direction::Bullish), Error::<Test>::VoteTooLow);
@@ -288,7 +288,7 @@ fn test_try_resolve_voting() {
         System::set_block_number(voting_period + 1);
 
         // Error if submit an empty input for the post
-        assert_noop!(Bullposting::try_resolve_voting(RuntimeOrigin::signed(alice), empty_post), Error::<Test>::Empty);
+        assert_noop!(Bullposting::try_resolve_voting(RuntimeOrigin::signed(alice), empty_post), Error::<Test>::EmptyInput);
 
         // Error if you submit a post that is longer than `MaxUrlLength`
         assert_noop!(Bullposting::try_resolve_voting(RuntimeOrigin::signed(alice), too_long), Error::<Test>::InputTooLong);
@@ -381,7 +381,7 @@ fn try_end_post() {
         assert_ok!(Bullposting::try_resolve_voting(RuntimeOrigin::signed(bob), post_url.clone()));
 
         // Error on empty post input
-        assert_noop!(Bullposting::try_end_post(RuntimeOrigin::signed(bob), empty_post.clone()), Error::<Test>::Empty);
+        assert_noop!(Bullposting::try_end_post(RuntimeOrigin::signed(bob), empty_post.clone()), Error::<Test>::EmptyInput);
 
         // Error if the post input is longer than `MaxUrlLength`
         assert_noop!(Bullposting::try_end_post(RuntimeOrigin::signed(bob), too_long), Error::<Test>::InputTooLong);
@@ -442,7 +442,7 @@ fn test_try_end_post_big() {
         assert_ok!(Bullposting::try_resolve_voting(RuntimeOrigin::signed(bob), post_url.clone()));
 
         // Error on empty post input
-        assert_noop!(Bullposting::try_end_post(RuntimeOrigin::signed(bob), empty_post.clone()), Error::<Test>::Empty);
+        assert_noop!(Bullposting::try_end_post(RuntimeOrigin::signed(bob), empty_post.clone()), Error::<Test>::EmptyInput);
 
         // Error if the post input is longer than `MaxUrlLength`
         assert_noop!(Bullposting::try_end_post(RuntimeOrigin::signed(bob), too_long), Error::<Test>::InputTooLong);
