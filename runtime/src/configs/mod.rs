@@ -305,16 +305,16 @@ impl pallet_collator_selection::Config for Runtime {
 
 parameter_types! {
 	pub const RewardStyle: bool = true; // false = FlatReward, true = RewardCoefficient
-    pub const FlatReward: Balance = 500_000_000_000; // if Alice bonds any amount of tokens she will be rewarded with 500 more
+    pub const FlatReward: Balance = 500_000_000_000_000; // if Alice bonds any amount of tokens she will be rewarded with 500 more
     pub const RewardCoefficient: u32 = 100; // if Alice bonds 400 tokens she will be rewarded with 400 more
     pub const SlashStyle: bool = true; // false = FlatSlash, true = SlashCoefficient
-    pub const FlatSlash: Balance = 500_000_000_000; // if Alice bonds any amount of tokens (at least `BondMinimum`) she will be slashed 500
+    pub const FlatSlash: Balance = 500_000_000_000_000; // if Alice bonds any amount of tokens (at least `BondMinimum`) she will be slashed 500
     pub const SlashCoefficient: u8 = 100; // if Alice bonds 500 tokens she will lose 100% of them
 	pub const VotingPeriod: BlockNumber = 50;
-    pub const BondMinimum: Balance = 1_000_000_000_000;
-	pub const VoteMinimum: Balance = 1_000_000_000_000;
+    pub const BondMinimum: Balance = 1_000_000_000_000_000;
+	pub const VoteMinimum: Balance = 1_000_000_000_000_000;
     pub const MaxVoters: u32 = 10000;
-    pub const StorageRent: Balance = 1_000_000_000_000;
+    pub const StorageRent: Balance = 1_000_000_000_000_000;
     pub const MaxInputLength: u32 = 2000;
 	pub const UnfreezeLimit: u32 = 1000;
 }
