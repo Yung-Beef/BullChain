@@ -89,7 +89,7 @@ pub mod pallet {
         /// with a lower slash risk.
         /// NOTE: This will only happen if `RewardStyle == false`
         #[pallet::constant]
-        type FlatReward: Get<u32>;
+        type FlatReward: Get<BalanceOf<Self>>;
 
         /// Determines the submitter's reward if their post is determined to be Bullish, based on the size of their bond.
         /// A value of 100 is a 1x reward. 200 will give a 2x reward
@@ -110,7 +110,7 @@ pub mod pallet {
         /// (eg. if you bond 50 tokens and FlatSlash == 100, you will only be slashed 50).
         /// NOTE: This will only happen if `SlashStyle == false`.
         #[pallet::constant]
-        type FlatSlash: Get<u32>;
+        type FlatSlash: Get<BalanceOf<Self>>;
 
         /// Determines how much of the submitter's bond is slashed if their post is determined to be Bearish.
         /// A value of 100 will slash 100% of their bond, a value of 50 will slash a 50% of their bond.
@@ -127,12 +127,12 @@ pub mod pallet {
         /// Determines the minimum amount of tokens that are acceptable to bond when submitting a post.
         /// Calling `try_submit_post` with a bond value lower than this amount will fail.
         #[pallet::constant]
-        type BondMinimum: Get<u32>;
+        type BondMinimum: Get<BalanceOf<Self>>;
 
         /// Determines the minimum amount of tokens that are acceptable to vote with.
         /// Calling `try_submit_vote` or `try_update_vote` with votes smaller than this value will fail.
         #[pallet::constant]
-        type VoteMinimum: Get<u32>;
+        type VoteMinimum: Get<BalanceOf<Self>>;
 
         /// Determines the maximum amount of accounts that can vote on a post.
         /// This is used to bound a vector storing all of the accounts that have voted on a particular post,
@@ -146,7 +146,7 @@ pub mod pallet {
         /// This value should be sufficiently high to prevent storage bloat attacks.
         /// The rent is unlocked once a post is ended and resolved (and thus removed from storage).
         #[pallet::constant]
-        type StorageRent: Get<u32>;
+        type StorageRent: Get<BalanceOf<Self>>;
 
         /// Determines the maximum acceptable length of submitted inputs.
         /// The inputs are simply checked to ensure they are short enough, and then hashed, so this can be quite high in practice.
