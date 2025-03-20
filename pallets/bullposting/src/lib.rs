@@ -120,7 +120,7 @@ pub mod pallet {
         type SlashCoefficient: Get<u8>;
 
         /// Determines for how many blocks the voting period of a post will run based on the block number the post was submitted at.
-        /// Votes submitted after the period ends will fail. Once the period ends, the post can be resolved with `try_resolve_voting`.
+        /// Votes submitted after the period ends will fail. Once the period ends, voting can be resolved with `try_resolve_voting`.
         #[pallet::constant]
         type VotingPeriod: Get<BlockNumberFor<Self>>;
 
@@ -144,7 +144,7 @@ pub mod pallet {
         /// Determines the amount of tokens that must be locked in order to submit a post.
         /// This is separate from the post's bond and is not involved in the reward process.
         /// This value should be sufficiently high to prevent storage bloat attacks.
-        /// The rent is unlocked once a post is ended and resolved (and thus removed from storage).
+        /// The rent is unlocked once a post is ended (and thus removed from storage).
         #[pallet::constant]
         type StorageRent: Get<BalanceOf<Self>>;
 
@@ -200,7 +200,7 @@ pub mod pallet {
         pub bull_votes: BalanceOf<T>,
         pub bear_votes: BalanceOf<T>,
         pub voting_until: BlockNumberFor<T>,
-        pub ended: bool,
+        pub resolved: bool,
     }
 
     /// Stores the post ID as the key and a post struct (with the additional info such as the submitter) as the value
@@ -277,8 +277,8 @@ pub mod pallet {
             /// Bullish or bearish vote.
             direction: Direction,
         },
-        /// Vote closed and ended, rewarding or slashing the submitter.
-        PostEnded {
+        /// Vote resolved, rewarding or slashing the submitter.
+        VotingResolved {
             /// The post ID.
             id: [u8; 32],
             /// The account that submitted the post and bonded tokens.
@@ -293,10 +293,10 @@ pub mod pallet {
             account: T::AccountId,
             amount: BalanceOf<T>,
         },
-        PartiallyResolved {
+        PostPartiallyEnded {
             id: [u8; 32]
         },
-        PostResolved {
+        PostEnded {
             id: [u8; 32]
         }
     }
@@ -333,10 +333,8 @@ pub mod pallet {
         VoteDoesNotExist,
         /// Vote still in progress.
         VotingStillOngoing,
-        /// Voting has ended but nobody has called try_end_voting() yet.
+        /// Voting has ended but nobody has called try_resolve_voting() yet.
         VotingUnresolved,
-        /// Vote already closed and nded.
-        PostAlreadyEnded,
         /// The voting period for a post has ended.
         VotingEnded,
     }
@@ -415,7 +413,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Submits a vote on whether a particular post is bullish or bearish.
+        /// Submits a vote on whether a particular post is bullish or bearish. Only possible before a post is ended.
         /// 
         /// ## Parameters
         /// - `origin`: The origin calling the extrinsic
@@ -512,7 +510,6 @@ pub mod pallet {
         /// - If post input is higher than the `MaxInputLength` set in the runtime ([`Error::InputTooLong`])
         /// - If the post does not exist ([`Error::PostDoesNotExist`])
         /// - If the vote is still in progress ([`Error::VotingStillOngoing`])
-        /// - If the post has already been ended ([`Error::PostAlreadyEnded`])
         #[pallet::call_index(3)]
         pub fn try_resolve_voting(
             origin: OriginFor<T>,
@@ -543,7 +540,7 @@ pub mod pallet {
         /// - If they submit nothing for the post_input ([`Error::EmptyInput`])
         /// - If post input is higher than the `MaxInputLength` set in the runtime ([`Error::InputTooLong`])
         /// - If the post does not exist ([`Error::PostDoesNotExist`])
-        /// - If the post is unended ([`Error::VotingUnresolved`])
+        /// - If the voting is unresolved ([`Error::VotingUnresolved`])
         #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::try_end_post(T::UnfreezeLimit::get()))]
         pub fn try_end_post(
@@ -599,7 +596,7 @@ pub mod pallet {
                 bull_votes: Zero::zero(),
                 bear_votes: Zero::zero(),
                 voting_until,
-                ended: false,
+                resolved: false,
             });
 
             // Emit an event.
@@ -800,12 +797,9 @@ pub mod pallet {
             // If current block number is lower than the post's voting_until, voting has not ended; error.
             ensure!(frame_system::Pallet::<T>::block_number() >= post_struct.voting_until, Error::<T>::VotingStillOngoing);
 
-            // Error if the post has already been ended.
-            ensure!(!post_struct.ended, Error::<T>::PostAlreadyEnded);
-
             // End the voting and update storage
             let updated_post_struct = Post {
-                ended: true,
+                resolved: true,
                 ..post_struct
             };
             Posts::<T>::insert(&id, &updated_post_struct);
@@ -832,7 +826,7 @@ pub mod pallet {
                     true => Self::reward_coefficient(&submitter, &bond)?,
                 };
 
-                Self::deposit_event(Event::PostEnded { 
+                Self::deposit_event(Event::VotingResolved { 
                     id,
                     submitter,
                     result,
@@ -846,7 +840,7 @@ pub mod pallet {
                     true => Self::slash_coefficient(&submitter, &bond)?,
                 };
 
-                Self::deposit_event(Event::PostEnded { 
+                Self::deposit_event(Event::VotingResolved { 
                     id,
                     submitter,
                     result,
@@ -855,7 +849,7 @@ pub mod pallet {
                 });
             } else {
                 // Does nothing if tie/no votes
-                Self::deposit_event(Event::PostEnded { 
+                Self::deposit_event(Event::VotingResolved { 
                     id,
                     submitter,
                     result: Direction::Tie,
@@ -926,8 +920,8 @@ pub mod pallet {
             ensure!(Posts::<T>::contains_key(&id), Error::<T>::PostDoesNotExist);
             let post_struct = Posts::<T>::get(&id).expect("Already checked that it exists");
 
-            // Error if the post is not ended yet
-            ensure!(post_struct.ended, Error::<T>::VotingUnresolved);
+            // Error if the voting is unresolved
+            ensure!(post_struct.resolved, Error::<T>::VotingUnresolved);
 
             let mut unfreeze_count = 0u32;
 
@@ -959,12 +953,12 @@ pub mod pallet {
                 let _ = Posts::<T>::take(id);
 
                 // Emit an event
-                Self::deposit_event(Event::PostResolved {
+                Self::deposit_event(Event::PostEnded {
                     id,
                 });
                 Ok(Some(T::WeightInfo::try_end_post(unfreeze_count)).into())
             } else {
-                Self::deposit_event(Event::PartiallyResolved {
+                Self::deposit_event(Event::PostPartiallyEnded {
                     id,
                 });
                 Ok(().into())
